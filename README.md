@@ -235,3 +235,168 @@ Implemented in `etl/validators.py` with logging to `logs/etl.log`:
 ## License
 
 Academic project — for educational purposes.
+
+
+---
+
+I’m checking the container setup and environment requirements first, then I’ll tighten the compose file so the ETL and dashboard can run consistently on another machine.
+
+Read [](file:///c%3A/Users/kevin/movies-etl-dashboard/Dockerfile)
+
+Read [](file:///c%3A/Users/kevin/movies-etl-dashboard/requirements.txt)
+
+Read [](file:///c%3A/Users/kevin/movies-etl-dashboard/.env)
+
+I found one important container issue: the compose file was defaulting TMDB to 5,000 rows, which would reintroduce the old cap in Docker. I’m correcting that before I draft the deployment guide.
+
+Replacing 31 lines with 37 lines in [](file:///c%3A/Users/kevin/movies-etl-dashboard/docker-compose.yml)
+
+
+```
+
+```
+
+
+Ran terminal command:  cd /c/Users/kevin/movies-etl-dashboard && docker compose config
+
+Ran terminal command:  cd /c/Users/kevin/movies-etl-dashboard && mkdir -p cache/kagglehub && docker compose up --build -d
+Completed with input:  cd /c/Users/kevin/movies-etl-dashboard && mkdir -p cache/kagglehub && docker compose up --build -d
+
+## Configuración lista para contenedores ✅
+
+Ya dejé docker-compose.yml preparado para que el flujo funcione de forma consistente en otra máquina:
+
+- ETL con `TMDB_SAMPLE_SIZE=0` para que no vuelva a capear el dataset en 5,000.
+- Montaje persistente de:
+  - data
+  - database
+  - logs
+- Caché de Kaggle en kagglehub para evitar re-descargas innecesarias.
+- Dashboard expuesto en `http://localhost:8501`
+
+> Verificación hecha: `docker compose config` sí pasó correctamente, así que la sintaxis del compose está bien.  
+> No pude lanzar el contenedor aquí porque este entorno no tiene un motor Docker disponible, así que la validación final de arranque se deja para el otro PC.
+
+---
+
+## Mini guía para inicializar el proyecto en otro PC
+
+### 1) Requisitos previos
+
+Instala en el otro equipo:
+
+- Docker Desktop
+- Docker Compose v2
+- Git
+
+Si usas Windows, lo ideal es tener Docker Desktop con WSL2 activado.
+
+---
+
+### 2) Clona el repositorio
+
+```bash
+git clone <URL-del-repo>
+cd movies-etl-dashboard
+```
+
+---
+
+### 3) Ajusta el archivo .env
+
+Asegúrate de que exista \.env con algo como esto:
+
+```env
+OMDB_API_KEY=5f53a744
+OMDB_MAX_REQUESTS=50
+IMDB_SAMPLE_SIZE=0
+TMDB_SAMPLE_SIZE=0
+LOG_LEVEL=INFO
+```
+
+Si quieres descargar TMDB desde Kaggle, agrega también tus credenciales de Kaggle:
+
+```env
+KAGGLE_USERNAME=tu_usuario
+KAGGLE_KEY=tu_api_key
+```
+
+> Si no tienes Kaggle creds, puedes dejar el proyecto con los CSV ya descargados en raw, y el pipeline usará esos archivos locales.
+
+---
+
+### 4) Prepara carpetas necesarias
+
+```bash
+mkdir -p data/raw data/processed database logs cache/kagglehub
+```
+
+---
+
+### 5) Asegura que los datasets estén disponibles
+
+Opciones:
+
+- Opción A (recomendada): deja los CSV listos en raw
+  - `imdb_movies.csv`
+  - `tmdb_movies.csv`
+
+- Opción B: deja que el ETL descargue desde Kaggle, pero entonces necesitas:
+  - internet
+  - credenciales de Kaggle válidas
+
+---
+
+### 6) Construye y levanta todo
+
+Desde la raíz del proyecto:
+
+```bash
+docker compose build
+docker compose up -d
+```
+
+Si quieres ver el progreso del ETL:
+
+```bash
+docker compose logs -f etl
+```
+
+---
+
+### 7) Abre el dashboard
+
+Una vez que el ETL termine:
+
+```text
+http://localhost:8501
+```
+
+---
+
+### 8) Si quieres reiniciar solo el pipeline
+
+```bash
+docker compose run --rm etl python run_pipeline.py
+```
+
+---
+
+### 9) Si quieres apagar todo
+
+```bash
+docker compose down
+```
+
+---
+
+## Recomendación clave para que funcione “tal cual”
+
+Para que el comportamiento sea lo más parecido al tuyo:
+
+1. Mantén `TMDB_SAMPLE_SIZE=0` en .env
+2. Asegura que raw tenga los CSV correctos
+3. Si usas Kaggle, configura `KAGGLE_USERNAME` y `KAGGLE_KEY`
+4. Usa `docker compose up -d` desde la raíz del proyecto
+
+---
