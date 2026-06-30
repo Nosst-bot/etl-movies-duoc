@@ -1,0 +1,37 @@
+services:
+  etl:
+    build: .
+    container_name: movies-etl
+    working_dir: /app
+    env_file:
+      - .env
+    environment:
+      - OMDB_API_KEY=${OMDB_API_KEY:-5f53a744}
+      - OMDB_MAX_REQUESTS=${OMDB_MAX_REQUESTS:-50}
+      - IMDB_SAMPLE_SIZE=${IMDB_SAMPLE_SIZE:-0}
+      - TMDB_SAMPLE_SIZE=${TMDB_SAMPLE_SIZE:-0}
+      - KAGGLEHUB_CACHE=/root/.cache/kagglehub
+    volumes:
+      - ./data:/app/data
+      - ./database:/app/database
+      - ./logs:/app/logs
+      - ./cache/kagglehub:/root/.cache/kagglehub
+    command: python run_pipeline.py
+
+  dashboard:
+    build: .
+    container_name: movies-dashboard
+    working_dir: /app
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./database:/app/database
+      - ./data:/app/data
+    depends_on:
+      etl:
+        condition: service_completed_successfully
+    command: >
+      streamlit run dashboard/app.py
+      --server.port=8501
+      --server.address=0.0.0.0
+      --browser.gatherUsageStats=false
