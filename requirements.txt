@@ -1,6 +1,8 @@
 pandas>=2.0.0
 requests>=2.31.0
-kagglehub>=0.2.0
+# Pin Kaggle packages to a compatible combo that avoids the missing kagglesdk.competitions.legacy module
+kagglehub==0.3.13
+kagglesdk==0.1.22
 streamlit>=1.28.0
 plotly>=5.18.0
 pytest>=7.4.0
